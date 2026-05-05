@@ -275,7 +275,7 @@ function spawnPiece(){
 
 function difficultyBoost(){
   const t = (Date.now()-startTime)/1000;
-  return Math.min(0.12, t/600);
+  return Math.min(0.24, t/300);
 }
 
 // Stickman in pixel world coords. y up. y=0 is bottom of world.
@@ -305,8 +305,8 @@ let lavaY = -200; // Welt-Pixel; startet außerhalb des Bildes
 
 function lavaSpeedAt(elapsed){
   const t = Math.max(0, elapsed - LAVA_DELAY);
-  // Pixel pro Sekunde, leicht beschleunigend
-  return 3 + Math.min(7, t/20);
+  // Pixel pro Sekunde, leicht beschleunigend (~10% schneller als zuvor)
+  return (3 + Math.min(7, t/20)) * 1.1;
 }
 
 function setBlock(c,r,color){
@@ -348,7 +348,7 @@ function update(dt){
   if(!started || gameOver) return;
   const elapsed = (Date.now()-startTime)/1000;
   endElapsed = elapsed;
-  pieceCount = Math.min(14, 3 + Math.floor(elapsed/18));
+  pieceCount = Math.min(14, 3 + Math.floor(elapsed/9));
   while(falling.length < pieceCount) spawnPiece();
 
   // Lava
@@ -419,19 +419,24 @@ function update(dt){
     fp.y -= fp.speed * 60 * dt;
     if(fp.y <= fp.landY){
       fp.y = fp.landY;
-      // Crush check: nur echte Überlappung zählt, nicht Kanten-Berührung.
-      // Hitbox horizontal & vertikal leicht verkleinert, damit der Stickman
-      // nicht stirbt, wenn ein Stein nur direkt neben ihm oder auf Fußhöhe landet.
+      // Crush check: AABB plus "Block landet direkt über dir".
+      // Hitbox horizontal leicht verkleinert, damit Kantenberührungen nicht töten.
       const CRUSH_PAD_X = 3;
       const CRUSH_PAD_Y = 1;
       const sL = stick.x - STICK_W/2 + CRUSH_PAD_X;
       const sR = stick.x + STICK_W/2 - CRUSH_PAD_X;
       const sB = stick.y + CRUSH_PAD_Y;
       const sT = stick.y + STICK_H - CRUSH_PAD_Y;
+      // "Right above" = die Block-Unterkante sitzt nahe über dem Kopf,
+      // ohne dass es noch eine Block-Höhe Spielraum gibt.
+      const ABOVE_KILL_RANGE = BLOCK; // 1 Block oberhalb zählt noch als direkt darüber
       for(const [dx,dy] of fp.piece.cells){
         const bx = fp.x + dx, by = fp.landY + dy;
         const bL = bx*BLOCK, bR = (bx+1)*BLOCK, bB = by*BLOCK, bT = (by+1)*BLOCK;
-        if(sL < bR && sR > bL && sB < bT && sT > bB){
+        const horizontalOverlap = sL < bR && sR > bL;
+        const aabbOverlap = horizontalOverlap && sB < bT && sT > bB;
+        const directlyAbove = horizontalOverlap && bB >= sT && bB - sT <= ABOVE_KILL_RANGE;
+        if(aabbOverlap || directlyAbove){
           if(!gameOver){ gameOver = true; onGameOver('crush'); }
         }
       }
