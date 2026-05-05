@@ -8,6 +8,6 @@ window.LAUNCHER_CONFIG = {
   PORTFOLIO_URL: 'https://example.com',
 
   // Supabase Projekt — leer lassen für reinen localStorage-Modus
-  SUPABASE_URL: '',           // z. B. 'https://xxxx.supabase.co'
-  SUPABASE_ANON_KEY: '',      // anon/public key aus Supabase Settings → API
+  SUPABASE_URL: 'https://sydahjusdspwgzfochwy.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_hjrT9QHjt2LhDonOc2xAhQ_i28Je8Yp',
 };
