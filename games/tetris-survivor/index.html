@@ -303,10 +303,26 @@ let startTime = 0;
 const LAVA_DELAY = 30; // Sekunden bis Lava erscheint
 let lavaY = -200; // Welt-Pixel; startet außerhalb des Bildes
 
+function topmostBlockY(){
+  let maxH = 0;
+  for(let i=0; i<COLS; i++) if(heights[i] > maxH) maxH = heights[i];
+  return maxH * BLOCK;
+}
+
 function lavaSpeedAt(elapsed){
   const t = Math.max(0, elapsed - LAVA_DELAY);
-  // Pixel pro Sekunde, leicht beschleunigend (~10% schneller als zuvor)
-  return (3 + Math.min(7, t/20)) * 1.1;
+  // Basis: ursprünglich, dann +10% (vorher), jetzt +50% darauf → 1.65x
+  const baseSpeed = (3 + Math.min(7, t/20)) * 1.65;
+  // Wenn Lava sich dem obersten Block nähert: exponentiell ausbremsen.
+  // Abstand > 10 Blöcke → volle Geschwindigkeit.
+  // Abstand ≤ 5 Blöcke → komplett gestoppt.
+  // Dazwischen kubische Abnahme.
+  const distPx = topmostBlockY() - lavaY;
+  const distBlocks = distPx / BLOCK;
+  if(distBlocks >= 10) return baseSpeed;
+  if(distBlocks <= 5) return 0;
+  const factor = Math.pow((distBlocks - 5) / 5, 3);
+  return baseSpeed * factor;
 }
 
 function setBlock(c,r,color){
