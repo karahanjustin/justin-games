@@ -311,8 +311,8 @@ function topmostBlockY(){
 
 function lavaSpeedAt(elapsed){
   const t = Math.max(0, elapsed - LAVA_DELAY);
-  // Basis: ursprünglich, dann +10% (vorher), jetzt +50% darauf → 1.65x
-  const baseSpeed = (3 + Math.min(7, t/20)) * 1.65;
+  // Basis * 1.65 (vorher) * 1.4 (jetzt nochmal +40%) ≈ 2.31x ursprünglich
+  const baseSpeed = (3 + Math.min(7, t/20)) * 1.65 * 1.4;
   // Wenn Lava sich dem obersten Block nähert: exponentiell ausbremsen.
   // Abstand > 10 Blöcke → volle Geschwindigkeit.
   // Abstand ≤ 5 Blöcke → komplett gestoppt.
@@ -331,12 +331,35 @@ function setBlock(c,r,color){
 }
 
 function colTopAt(px){
+  // Volle Stapelhöhe — für horizontale Wand-/Step-Up-Prüfung
   const lc = Math.floor((px - STICK_W/2)/BLOCK);
   const rc = Math.floor((px + STICK_W/2 - 0.01)/BLOCK);
   let m = 0;
   for(let c=lc;c<=rc;c++){
     if(c<0||c>=COLS) continue;
     m = Math.max(m, heights[c]*BLOCK);
+  }
+  return m;
+}
+
+// Höhle-bewusster Boden: höchster Block-Top, der ≤ Spielerfüße liegt.
+// So teleportiert ein neu gelandeter Stein über dem Spieler nicht den Spieler hoch.
+function groundUnderAt(px){
+  const lc = Math.floor((px - STICK_W/2)/BLOCK);
+  const rc = Math.floor((px + STICK_W/2 - 0.01)/BLOCK);
+  let m = 0;
+  // refRow = höchste Reihe, deren Oberkante ≤ stick.y (mit 2 px Toleranz)
+  const refRow = Math.floor((stick.y + 2) / BLOCK) - 1;
+  for(let c=lc;c<=rc;c++){
+    if(c<0||c>=COLS) continue;
+    const startR = Math.min(heights[c] - 1, refRow);
+    for(let r=startR; r>=0; r--){
+      if(grid.has(c+','+r)){
+        const top = (r+1)*BLOCK;
+        if(top > m) m = top;
+        break;
+      }
+    }
   }
   return m;
 }
@@ -354,6 +377,24 @@ function ceilingAt(px, fromY){
         const bottom = r*BLOCK;
         if(bottom < m) m = bottom;
         break;
+      }
+    }
+  }
+  return m;
+}
+
+// Decke durch fallende (noch nicht gelandete) Steine — kein Durchspringen mehr.
+function fallingPieceCeilingAt(px, fromY){
+  const sL = px - STICK_W/2;
+  const sR = px + STICK_W/2;
+  let m = Infinity;
+  for(const fp of falling){
+    for(const [dx,dy] of fp.piece.cells){
+      const bx = fp.x + dx;
+      const bL = bx*BLOCK, bR = (bx+1)*BLOCK;
+      if(sL < bR && sR > bL){
+        const bottom = (fp.y + dy) * BLOCK;
+        if(bottom >= fromY && bottom < m) m = bottom;
       }
     }
   }
@@ -404,15 +445,17 @@ function update(dt){
 
   // Vertical
   let ny = stick.y + stick.vy * dt;
-  // Decken-Hitbox: beim Aufwärtsbewegen prüfen, ob der Kopf unter einen Block stößt
+  // Decken-Hitbox: gelandete Blöcke + fallende Steine (kein Cheesen durch Springen)
   if(stick.vy > 0){
-    const ceil = ceilingAt(stick.x, stick.y + STICK_H);
+    const ceilStatic = ceilingAt(stick.x, stick.y + STICK_H);
+    const ceilFalling = fallingPieceCeilingAt(stick.x, stick.y + STICK_H);
+    const ceil = Math.min(ceilStatic, ceilFalling);
     if(ny + STICK_H > ceil){
       ny = ceil - STICK_H;
       stick.vy = 0;
     }
   }
-  const ground = colTopAt(stick.x);
+  const ground = groundUnderAt(stick.x);
   if(ny <= ground){
     ny = ground;
     stick.vy = 0;
