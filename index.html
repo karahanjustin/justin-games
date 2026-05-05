@@ -19,14 +19,121 @@
 
 <section class="hero">
   <h1>Browser-Spiele zum Reinklicken</h1>
-  <p>Eine kleine Sammlung selbstgebauter Mini-Games. Alle laufen direkt im Browser, mit globalen Highscores.</p>
+  <p>Just some stupid tiny games I made.</p>
 </section>
 
 <main>
   <div class="section-title" id="games">Verfügbare Spiele</div>
   <div class="games">
     <a class="game-card" href="games/tetris-survivor/index.html">
-      <div class="thumb">🧱</div>
+      <div class="thumb">
+        <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+          <defs>
+            <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1a1a3a"/>
+              <stop offset="100%" stop-color="#0d0d1a"/>
+            </linearGradient>
+            <linearGradient id="lava" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffea00"/>
+              <stop offset="15%" stop-color="#ff7a00"/>
+              <stop offset="100%" stop-color="#a30000"/>
+            </linearGradient>
+          </defs>
+          <rect width="320" height="180" fill="url(#bg)"/>
+
+          <!-- Lava am unteren Rand -->
+          <rect x="0" y="144" width="320" height="36" fill="url(#lava)"/>
+          <path d="M0,144 Q12,141 24,144 T48,144 T72,144 T96,144 T120,144 T144,144 T168,144 T192,144 T216,144 T240,144 T264,144 T288,144 T312,144 L320,144 L320,148 L0,148 Z" fill="#fff2a0"/>
+
+          <!-- Tetris-Terrain -->
+          <g stroke="rgba(0,0,0,0.45)" stroke-width="1">
+            <rect x="0"   y="128" width="16" height="16" fill="#0000f0"/>
+            <rect x="16"  y="128" width="16" height="16" fill="#f0a000"/>
+            <rect x="32"  y="128" width="16" height="16" fill="#a000f0"/>
+            <rect x="48"  y="128" width="16" height="16" fill="#f0f000"/>
+            <rect x="48"  y="112" width="16" height="16" fill="#f0f000"/>
+            <rect x="64"  y="128" width="16" height="16" fill="#f0f000"/>
+            <rect x="64"  y="112" width="16" height="16" fill="#f0f000"/>
+            <rect x="80"  y="128" width="16" height="16" fill="#00f0f0"/>
+            <rect x="80"  y="112" width="16" height="16" fill="#00f000"/>
+            <rect x="80"  y="96"  width="16" height="16" fill="#f00000"/>
+            <rect x="96"  y="128" width="16" height="16" fill="#00f0f0"/>
+            <rect x="96"  y="112" width="16" height="16" fill="#00f000"/>
+            <rect x="96"  y="96"  width="16" height="16" fill="#a000f0"/>
+            <rect x="112" y="128" width="16" height="16" fill="#00f0f0"/>
+            <rect x="112" y="112" width="16" height="16" fill="#f0a000"/>
+            <rect x="112" y="96"  width="16" height="16" fill="#0000f0"/>
+            <rect x="128" y="128" width="16" height="16" fill="#a000f0"/>
+            <rect x="128" y="112" width="16" height="16" fill="#f00000"/>
+            <rect x="144" y="128" width="16" height="16" fill="#0000f0"/>
+            <rect x="144" y="112" width="16" height="16" fill="#f00000"/>
+            <rect x="160" y="128" width="16" height="16" fill="#f0a000"/>
+            <rect x="176" y="128" width="16" height="16" fill="#00f000"/>
+            <rect x="192" y="128" width="16" height="16" fill="#f0f000"/>
+            <rect x="192" y="112" width="16" height="16" fill="#f0f000"/>
+            <rect x="208" y="128" width="16" height="16" fill="#f0f000"/>
+            <rect x="208" y="112" width="16" height="16" fill="#f0f000"/>
+            <rect x="224" y="128" width="16" height="16" fill="#00f0f0"/>
+            <rect x="224" y="112" width="16" height="16" fill="#a000f0"/>
+            <rect x="240" y="128" width="16" height="16" fill="#f00000"/>
+            <rect x="256" y="128" width="16" height="16" fill="#f0a000"/>
+            <rect x="272" y="128" width="16" height="16" fill="#0000f0"/>
+            <rect x="288" y="128" width="16" height="16" fill="#00f000"/>
+            <rect x="304" y="128" width="16" height="16" fill="#a000f0"/>
+          </g>
+
+          <!-- Highlights oben auf jedem Block -->
+          <g fill="rgba(255,255,255,0.22)">
+            <rect x="1"   y="129" width="14" height="2"/>
+            <rect x="17"  y="129" width="14" height="2"/>
+            <rect x="33"  y="129" width="14" height="2"/>
+            <rect x="49"  y="113" width="14" height="2"/>
+            <rect x="65"  y="113" width="14" height="2"/>
+            <rect x="81"  y="97"  width="14" height="2"/>
+            <rect x="97"  y="97"  width="14" height="2"/>
+            <rect x="113" y="97"  width="14" height="2"/>
+            <rect x="129" y="113" width="14" height="2"/>
+            <rect x="145" y="113" width="14" height="2"/>
+            <rect x="161" y="129" width="14" height="2"/>
+            <rect x="177" y="129" width="14" height="2"/>
+            <rect x="193" y="113" width="14" height="2"/>
+            <rect x="209" y="113" width="14" height="2"/>
+            <rect x="225" y="113" width="14" height="2"/>
+            <rect x="241" y="129" width="14" height="2"/>
+            <rect x="257" y="129" width="14" height="2"/>
+            <rect x="273" y="129" width="14" height="2"/>
+            <rect x="289" y="129" width="14" height="2"/>
+            <rect x="305" y="129" width="14" height="2"/>
+          </g>
+
+          <!-- Fallender L-Stein oben links -->
+          <g stroke="rgba(0,0,0,0.45)" stroke-width="1">
+            <rect x="16" y="40" width="16" height="16" fill="#f0a000"/>
+            <rect x="32" y="40" width="16" height="16" fill="#f0a000"/>
+            <rect x="48" y="40" width="16" height="16" fill="#f0a000"/>
+            <rect x="48" y="24" width="16" height="16" fill="#f0a000"/>
+          </g>
+
+          <!-- Fallender O-Stein oben rechts -->
+          <g stroke="rgba(0,0,0,0.45)" stroke-width="1">
+            <rect x="248" y="24" width="16" height="16" fill="#f0f000"/>
+            <rect x="264" y="24" width="16" height="16" fill="#f0f000"/>
+            <rect x="248" y="40" width="16" height="16" fill="#f0f000"/>
+            <rect x="264" y="40" width="16" height="16" fill="#f0f000"/>
+          </g>
+
+          <!-- Stickman steht auf Spitze des Stapels -->
+          <g stroke="#f1f5f9" stroke-width="2" stroke-linecap="round" fill="none">
+            <line x1="120" y1="84" x2="115" y2="96"/>
+            <line x1="120" y1="84" x2="125" y2="96"/>
+            <line x1="120" y1="84" x2="120" y2="76"/>
+            <line x1="120" y1="76" x2="115" y2="82"/>
+            <line x1="120" y1="76" x2="125" y2="82"/>
+            <circle cx="120" cy="70" r="4"/>
+          </g>
+          <circle cx="121.5" cy="69.5" r="1.2" fill="#f1f5f9"/>
+        </svg>
+      </div>
       <div class="body">
         <h3>Tetris Survivor</h3>
         <p>Überlebe als Stickman auf einem endlosen Tetris-Feld. Weiche Steinen aus, fliehe vor der Lava.</p>
