@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Justin's Game Launcher</title>
+<link rel="stylesheet" href="styles.css">
+<script src="config.js"></script>
+</head>
+<body>
+
+<header>
+  <a href="./" class="brand">JUSTIN<span>.GAMES</span></a>
+  <nav>
+    <a href="#games">Spiele</a>
+    <a id="portfolioHeader" href="#" target="_blank" rel="noopener">Portfolio ↗</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <h1>Browser-Spiele zum Reinklicken</h1>
+  <p>Eine kleine Sammlung selbstgebauter Mini-Games. Alle laufen direkt im Browser, mit globalen Highscores.</p>
+</section>
+
+<main>
+  <div class="section-title" id="games">Verfügbare Spiele</div>
+  <div class="games">
+    <a class="game-card" href="games/tetris-survivor/index.html">
+      <div class="thumb">🧱</div>
+      <div class="body">
+        <h3>Tetris Survivor</h3>
+        <p>Überlebe als Stickman auf einem endlosen Tetris-Feld. Weiche Steinen aus, fliehe vor der Lava.</p>
+        <div class="tags">
+          <span class="tag">Action</span>
+          <span class="tag">Endless</span>
+          <span class="tag">Mobile</span>
+        </div>
+      </div>
+    </a>
+
+    <div class="game-card coming-soon">
+      <div class="thumb">⏳</div>
+      <div class="body">
+        <h3>Coming Soon</h3>
+        <p>Mehr Spiele sind in Arbeit.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div>© <span id="year"></span> Justin Karahan</div>
+  <div>
+    <a id="portfolioFooter" href="#" target="_blank" rel="noopener">Portfolio ↗</a>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  const cfg = window.LAUNCHER_CONFIG || {};
+  const url = cfg.PORTFOLIO_URL || '#';
+  document.getElementById('portfolioHeader').href = url;
+  document.getElementById('portfolioFooter').href = url;
+</script>
+
+</body>
+</html>

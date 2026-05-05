@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Tetris Survivor</title>
+<script src="../../config.js"></script>
+<style>
+  html, body { margin:0; padding:0; background:#0d0d1a; color:#eee; font-family: -apple-system, system-ui, sans-serif; overflow:hidden; height:100%; }
+  body { display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  #wrap { position:relative; }
+  canvas { display:block; background:#13132a; box-shadow:0 0 40px rgba(80,120,255,0.25); border-radius:6px; image-rendering: pixelated; }
+  #hud { position:absolute; top:8px; left:10px; right:10px; display:flex; justify-content:space-between; font-size:14px; font-weight:600; text-shadow:0 1px 2px #000; pointer-events:none; }
+  #hud .stat { background:rgba(0,0,0,0.4); padding:4px 10px; border-radius:4px; }
+  #over { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(0,0,0,0.85); border-radius:6px; padding:20px; box-sizing:border-box; overflow:auto; }
+  #over.show { display:flex; }
+  #over h1 { font-size:38px; margin:6px 0; color:#ff5577; }
+  #over p { font-size:16px; margin:3px 0; }
+  button { margin-top:10px; padding:9px 20px; font-size:14px; font-weight:600; cursor:pointer; background:#5a8dff; color:#fff; border:none; border-radius:4px; }
+  button:hover { background:#7aa6ff; }
+  #help { margin-top:8px; font-size:12px; color:#aab; }
+  #backLink { position:fixed; top:12px; left:12px; color:#9cf; text-decoration:none; font-size:13px; background:rgba(0,0,0,0.5); padding:6px 12px; border-radius:4px; z-index:100; }
+  #backLink:hover { color:#fff; background:rgba(0,0,0,0.7); }
+  .boardStatus { font-size:11px; color:#778; margin-top:4px; text-align:center; }
+  .boardStatus.online { color:#7af; }
+  .boardStatus.offline { color:#fa5; }
+  #nameForm { display:none; margin:8px 0; }
+  #nameForm input { padding:6px 10px; font-size:14px; border-radius:4px; border:1px solid #444; background:#1c1c30; color:#fff; }
+  .boards { display:flex; gap:18px; margin-top:14px; }
+  .board { background:rgba(255,255,255,0.05); border-radius:6px; padding:10px 14px; min-width:230px; }
+  .board h3 { margin:0 0 6px 0; font-size:14px; color:#9cf; letter-spacing:0.5px; text-transform:uppercase; }
+  .board table { border-collapse:collapse; font-size:12px; width:100%; }
+  .board td { padding:2px 6px; }
+  .board tr.you td { color:#ffd166; font-weight:700; }
+  .board td.rank { color:#888; width:18px; text-align:right; }
+  .board td.score { text-align:right; color:#7af; font-variant-numeric: tabular-nums; }
+  .board td.date { color:#778; font-size:11px; text-align:right; }
+  /* Start- und Optionsmenü */
+  #menu { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; background:rgba(8,8,20,0.92); border-radius:6px; padding:30px; box-sizing:border-box; }
+  #menu.hide { display:none; }
+  #menu h1 { font-size:46px; margin:0 0 4px 0; color:#9cf; letter-spacing:2px; }
+  #menu .subtitle { color:#778; margin-bottom:30px; font-size:14px; }
+  #menu .menuBtn { width:200px; padding:12px 24px; font-size:18px; margin:6px 0; }
+  #optionsPane { display:none; flex-direction:column; align-items:center; }
+  #optionsPane.show { display:flex; }
+  #menuMain.hide { display:none; }
+  .opt { display:flex; align-items:center; gap:10px; margin:8px 0; font-size:15px; }
+  .opt input[type=checkbox] { width:18px; height:18px; cursor:pointer; }
+  /* Mobile-Steuerung */
+  #mobileControls { position:absolute; inset:0; pointer-events:none; display:none; }
+  #mobileControls.show { display:block; }
+  #joystick { position:absolute; bottom:20px; left:20px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.18); pointer-events:auto; touch-action:none; }
+  #joyKnob { position:absolute; left:50%; top:50%; width:54px; height:54px; margin-left:-27px; margin-top:-27px; border-radius:50%; background:rgba(120,170,255,0.55); border:2px solid rgba(255,255,255,0.4); pointer-events:none; }
+  #jumpBtn { position:absolute; bottom:30px; right:30px; width:100px; height:100px; border-radius:50%; background:rgba(255,180,80,0.35); border:3px solid rgba(255,200,100,0.7); color:#fff; font-size:36px; display:flex; align-items:center; justify-content:center; pointer-events:auto; touch-action:none; user-select:none; font-weight:700; }
+  #jumpBtn:active, #jumpBtn.active { background:rgba(255,180,80,0.65); }
+</style>
+</head>
+<body>
+<a id="backLink" href="../../index.html">← Launcher</a>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div id="mobileControls">
+    <div id="joystick"><div id="joyKnob"></div></div>
+    <div id="jumpBtn">⤴</div>
+  </div>
+  <div id="menu">
+    <div id="menuMain">
+      <h1>TETRIS SURVIVOR</h1>
+      <div class="subtitle">Überlebe so lange wie möglich auf dem fallenden Stein-Chaos</div>
+      <button class="menuBtn" id="btnPlay">Play</button>
+      <button class="menuBtn" id="btnOptions">Options</button>
+    </div>
+    <div id="optionsPane">
+      <h1 style="font-size:32px;">Optionen</h1>
+      <label class="opt"><input type="checkbox" id="optMobile"> Mobile-Steuerung (Joystick + Sprungknopf)</label>
+      <button class="menuBtn" id="btnBack">Zurück</button>
+    </div>
+  </div>
+  <div id="hud">
+    <div class="stat">Höhe: <span id="height">0</span></div>
+    <div class="stat">Zeit: <span id="time">0</span>s</div>
+    <div class="stat" id="lavaStat">Lava in: 30s</div>
+  </div>
+  <div id="over">
+    <h1 id="overTitle">Zerquetscht!</h1>
+    <p>Erreichte Höhe: <b><span id="finalHeight"></span></b> Blöcke</p>
+    <p>Überlebt: <b><span id="finalTime"></span></b> Sekunden</p>
+    <form id="nameForm" onsubmit="return saveName(event)">
+      <p style="color:#ffd166;">Neuer Highscore! Name eingeben:</p>
+      <input id="nameInput" maxlength="12" autocomplete="off" placeholder="Spielername" required>
+      <button type="submit">Speichern</button>
+    </form>
+    <div class="boards">
+      <div class="board">
+        <h3>Top 10 — Höhe</h3>
+        <table id="boardHeight"></table>
+        <div class="boardStatus" id="statusHeight">Lade…</div>
+      </div>
+      <div class="board">
+        <h3>Top 10 — Zeit</h3>
+        <table id="boardTime"></table>
+        <div class="boardStatus" id="statusTime">Lade…</div>
+      </div>
+    </div>
+    <button onclick="location.reload()">Nochmal</button>
+  </div>
+</div>
+<div id="help">A/D oder ←/→ bewegen · Leertaste oder W springen</div>
+<script>
+const COLS = 40;
+const BLOCK = 18;
+const ROWS_VISIBLE = 28;
+const W = COLS * BLOCK;
+const H = ROWS_VISIBLE * BLOCK;
+const canvas = document.getElementById('game');
+canvas.width = W; canvas.height = H;
+const ctx = canvas.getContext('2d');
+
+// World grid: y up, blocks at (col, row). Stored sparsely.
+const grid = new Map();
+const heights = new Array(COLS).fill(0); // first empty row in column
+
+// Echte Tetrominos in allen Rotationen, mit Standardfarben.
+// cells: [dx, dy] mit dy nach oben. Untere Reihe ist dy=0.
+const COLORS = {
+  I: '#00f0f0', // cyan
+  O: '#f0f000', // gelb
+  T: '#a000f0', // lila
+  L: '#f0a000', // orange
+  J: '#0000f0', // blau
+  S: '#00f000', // grün
+  Z: '#f00000', // rot
+};
+// Rotationen je Typ. Beim Ziehen aus dem Beutel wird zufällig eine Rotation gewählt.
+const ROTATIONS = {
+  I: [
+    [[0,0],[1,0],[2,0],[3,0]],
+    [[0,0],[0,1],[0,2],[0,3]],
+  ],
+  O: [
+    [[0,0],[1,0],[0,1],[1,1]],
+  ],
+  T: [
+    [[0,0],[1,0],[2,0],[1,1]],
+    [[0,0],[0,1],[0,2],[1,1]],
+    [[1,0],[0,1],[1,1],[2,1]],
+    [[1,0],[1,1],[1,2],[0,1]],
+  ],
+  L: [
+    [[0,0],[1,0],[2,0],[2,1]],
+    [[0,0],[0,1],[0,2],[1,2]],
+    [[0,0],[0,1],[1,1],[2,1]],
+    [[0,0],[1,0],[1,1],[1,2]],
+  ],
+  J: [
+    [[0,0],[1,0],[2,0],[0,1]],
+    [[0,0],[1,0],[1,1],[1,2]],
+    [[2,0],[0,1],[1,1],[2,1]],
+    [[0,0],[0,1],[0,2],[1,0]],
+  ],
+  S: [
+    [[0,0],[1,0],[1,1],[2,1]],
+    [[1,0],[0,1],[1,1],[0,2]],
+  ],
+  Z: [
+    [[1,0],[2,0],[0,1],[1,1]],
+    [[0,0],[0,1],[1,1],[1,2]],
+  ],
+};
+const PIECE_TYPES = ['I','O','T','L','J','S','Z'];
+
+// 7-Bag: erst sind alle 7 Typen drin, gemischt; ist er leer, wird er neu gefüllt.
+let bag = [];
+function refillBag(){
+  bag = PIECE_TYPES.slice();
+  for(let i=bag.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [bag[i],bag[j]] = [bag[j],bag[i]];
+  }
+}
+function drawFromBag(){
+  if(bag.length === 0) refillBag();
+  return bag.pop();
+}
+function makePiece(type, rotIdx){
+  return { type, cells: ROTATIONS[type][rotIdx], color: COLORS[type] };
+}
+
+function pieceWidth(p){ let m=0; for(const c of p.cells) if(c[0]>m) m=c[0]; return m+1; }
+function bottomProfile(p){
+  const cols={};
+  for(const [dx,dy] of p.cells){ if(cols[dx]===undefined||dy<cols[dx]) cols[dx]=dy; }
+  return cols;
+}
+
+const falling = [];
+
+// Reserved heights = current heights + landing footprint of falling pieces.
+function reservedHeights(){
+  const h = heights.slice();
+  for(const fp of falling){
+    for(const [dx,dy] of fp.piece.cells){
+      const c = fp.x + dx;
+      const top = fp.landY + dy + 1;
+      if(top > h[c]) h[c] = top;
+    }
+  }
+  return h;
+}
+
+function findPlacementForType(type){
+  const rh = reservedHeights();
+  const rots = ROTATIONS[type];
+  // Zufällige Rotation
+  const rotIdx = Math.floor(Math.random()*rots.length);
+  const piece = makePiece(type, rotIdx);
+  const w = pieceWidth(piece);
+  const profile = bottomProfile(piece);
+
+  // Für jede mögliche x-Position: Durchschnittshöhe der bedeckten Spalten.
+  // Je niedriger, desto höher die Spawn-Wahrscheinlichkeit.
+  const positions = [];
+  let maxAvg = 0;
+  for(let x=0; x<=COLS-w; x++){
+    let sum = 0, count = 0;
+    for(const k in profile){ sum += rh[x+(+k)]; count++; }
+    const avg = sum/count;
+    if(avg > maxAvg) maxAvg = avg;
+    positions.push({ x, avg });
+  }
+  let total = 0;
+  for(const p of positions){
+    // Gewicht: kubisch in der Differenz zur höchsten Säule → starke Bevorzugung niedriger Spalten
+    p.weight = Math.pow(maxAvg - p.avg + 1, 3);
+    total += p.weight;
+  }
+  let r = Math.random()*total;
+  let chosen = positions[0];
+  for(const p of positions){
+    r -= p.weight;
+    if(r <= 0){ chosen = p; break; }
+  }
+
+  // landY = niedrigste Position, bei der keine Zelle in Terrain eindringt
+  let landY = 0;
+  for(const k in profile){
+    const dx = +k;
+    const need = rh[chosen.x+dx] - profile[dx];
+    if(need > landY) landY = need;
+  }
+  return { piece, x: chosen.x, landY };
+}
+
+function spawnPiece(){
+  const type = drawFromBag();
+  const pl = findPlacementForType(type);
+  // Spawn well above the highest visible point so it falls through view.
+  const topY = Math.max(...heights.map((h,i)=>{
+    let m = h;
+    for(const fp of falling){
+      for(const [dx,dy] of fp.piece.cells){
+        if(fp.x+dx===i) m = Math.max(m, fp.landY+dy+1);
+      }
+    }
+    return m;
+  })) + 22;
+  falling.push({
+    piece: pl.piece,
+    x: pl.x,
+    y: topY,
+    landY: pl.landY,
+    speed: 0.09 + Math.random()*0.04 + difficultyBoost(),
+  });
+}
+
+function difficultyBoost(){
+  const t = (Date.now()-startTime)/1000;
+  return Math.min(0.12, t/600);
+}
+
+// Stickman in pixel world coords. y up. y=0 is bottom of world.
+const STICK_W = 11;
+const STICK_H = 26;
+const stick = { x: (COLS/2)*BLOCK, y: 0, vx:0, vy:0, onGround:false, walkPhase:0, facing:1 };
+
+const keys = {};
+let jumpQueued = false;
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if((k===' '||k==='w'||k==='arrowup') && !e.repeat) jumpQueued = true;
+  keys[k] = true;
+  if([' ','arrowleft','arrowright','arrowup','arrowdown'].includes(k)) e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+let cameraY = 0;
+let pieceCount = 3;
+let gameOver = false;
+let started = false;
+let endElapsed = 0; // Sekunden bis zum Tod (eingefroren bei Game Over)
+let maxHeight = 0;
+let startTime = 0;
+const LAVA_DELAY = 30; // Sekunden bis Lava erscheint
+let lavaY = -200; // Welt-Pixel; startet außerhalb des Bildes
+
+function lavaSpeedAt(elapsed){
+  const t = Math.max(0, elapsed - LAVA_DELAY);
+  // Pixel pro Sekunde, leicht beschleunigend
+  return 3 + Math.min(7, t/20);
+}
+
+function setBlock(c,r,color){
+  grid.set(c+','+r, color);
+  if(r+1 > heights[c]) heights[c] = r+1;
+}
+
+function colTopAt(px){
+  const lc = Math.floor((px - STICK_W/2)/BLOCK);
+  const rc = Math.floor((px + STICK_W/2 - 0.01)/BLOCK);
+  let m = 0;
+  for(let c=lc;c<=rc;c++){
+    if(c<0||c>=COLS) continue;
+    m = Math.max(m, heights[c]*BLOCK);
+  }
+  return m;
+}
+
+// Niedrigste Block-Unterkante (in Pixeln) oberhalb von fromY in den Spalten unter dem Stickman
+function ceilingAt(px, fromY){
+  const lc = Math.floor((px - STICK_W/2)/BLOCK);
+  const rc = Math.floor((px + STICK_W/2 - 0.01)/BLOCK);
+  let m = Infinity;
+  const startRow = Math.max(0, Math.floor(fromY / BLOCK));
+  for(let c=lc;c<=rc;c++){
+    if(c<0||c>=COLS) continue;
+    for(let r=startRow; r<startRow+40; r++){
+      if(grid.has(c+','+r)){
+        const bottom = r*BLOCK;
+        if(bottom < m) m = bottom;
+        break;
+      }
+    }
+  }
+  return m;
+}
+
+function update(dt){
+  if(!started || gameOver) return;
+  const elapsed = (Date.now()-startTime)/1000;
+  endElapsed = elapsed;
+  pieceCount = Math.min(14, 3 + Math.floor(elapsed/18));
+  while(falling.length < pieceCount) spawnPiece();
+
+  // Lava
+  if(elapsed > LAVA_DELAY){
+    lavaY += lavaSpeedAt(elapsed) * dt;
+  }
+  if(stick.y < lavaY){
+    gameOver = true;
+    onGameOver('lava');
+  }
+
+  let move = 0;
+  if(keys['a']||keys['arrowleft']) move -= 1;
+  if(keys['d']||keys['arrowright']) move += 1;
+  // Mobile-Joystick (überschreibt Tastatur, falls aktiv)
+  if(joyActive){
+    move = Math.max(-1, Math.min(1, joyValue));
+  }
+  if(move!==0) stick.facing = move > 0 ? 1 : -1;
+
+  stick.vy -= 1400 * dt;
+
+  // Horizontal with step-up
+  const speed = 130;
+  let nx = stick.x + move*speed*dt;
+  nx = Math.max(STICK_W/2, Math.min(W - STICK_W/2, nx));
+  const newTop = colTopAt(nx);
+  if(newTop > stick.y + 4){
+    if(stick.onGround && newTop - stick.y <= BLOCK + 2){
+      stick.x = nx;
+      stick.y = newTop;
+      stick.vy = 0;
+    }
+  } else {
+    stick.x = nx;
+  }
+
+  // Vertical
+  let ny = stick.y + stick.vy * dt;
+  // Decken-Hitbox: beim Aufwärtsbewegen prüfen, ob der Kopf unter einen Block stößt
+  if(stick.vy > 0){
+    const ceil = ceilingAt(stick.x, stick.y + STICK_H);
+    if(ny + STICK_H > ceil){
+      ny = ceil - STICK_H;
+      stick.vy = 0;
+    }
+  }
+  const ground = colTopAt(stick.x);
+  if(ny <= ground){
+    ny = ground;
+    stick.vy = 0;
+    stick.onGround = true;
+  } else {
+    stick.onGround = false;
+  }
+  stick.y = ny;
+
+  if(stick.onGround && jumpQueued){
+    stick.vy = 470;
+    stick.onGround = false;
+  }
+  jumpQueued = false;
+
+  if(move!==0 && stick.onGround) stick.walkPhase += dt * 14;
+
+  // Falling pieces
+  for(const fp of falling){
+    fp.y -= fp.speed * 60 * dt;
+    if(fp.y <= fp.landY){
+      fp.y = fp.landY;
+      // Crush check: nur echte Überlappung zählt, nicht Kanten-Berührung.
+      // Hitbox horizontal & vertikal leicht verkleinert, damit der Stickman
+      // nicht stirbt, wenn ein Stein nur direkt neben ihm oder auf Fußhöhe landet.
+      const CRUSH_PAD_X = 3;
+      const CRUSH_PAD_Y = 1;
+      const sL = stick.x - STICK_W/2 + CRUSH_PAD_X;
+      const sR = stick.x + STICK_W/2 - CRUSH_PAD_X;
+      const sB = stick.y + CRUSH_PAD_Y;
+      const sT = stick.y + STICK_H - CRUSH_PAD_Y;
+      for(const [dx,dy] of fp.piece.cells){
+        const bx = fp.x + dx, by = fp.landY + dy;
+        const bL = bx*BLOCK, bR = (bx+1)*BLOCK, bB = by*BLOCK, bT = (by+1)*BLOCK;
+        if(sL < bR && sR > bL && sB < bT && sT > bB){
+          if(!gameOver){ gameOver = true; onGameOver('crush'); }
+        }
+      }
+      for(const [dx,dy] of fp.piece.cells){
+        setBlock(fp.x+dx, fp.landY+dy, fp.piece.color);
+      }
+      fp._done = true;
+    }
+  }
+  for(let i=falling.length-1;i>=0;i--) if(falling[i]._done) falling.splice(i,1);
+
+  // Track maximale Höhe
+  const curH = Math.floor(stick.y/BLOCK);
+  if(curH > maxHeight) maxHeight = curH;
+
+  // Camera
+  const target = Math.max(0, stick.y - H*0.32);
+  cameraY += (target - cameraY) * Math.min(1, dt*4);
+
+  if(stick.y + STICK_H < cameraY - 50){
+    if(!gameOver){ gameOver = true; onGameOver('fall'); }
+  }
+}
+
+function drawStickman(px, py){
+  const cx = px;
+  const feetY = py;
+  const hipY = feetY - 12;
+  const shoulderY = feetY - 20;
+  const headCenterY = feetY - 26;
+  const phase = stick.walkPhase;
+  const air = !stick.onGround;
+  const legSwing = air ? 4 : Math.sin(phase)*5;
+  const armSwing = air ? -5 : -Math.sin(phase)*5;
+
+  ctx.strokeStyle = '#f1f5f9';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  // legs
+  ctx.beginPath();
+  ctx.moveTo(cx, hipY); ctx.lineTo(cx - legSwing, feetY);
+  ctx.moveTo(cx, hipY); ctx.lineTo(cx + legSwing, feetY);
+  ctx.stroke();
+  // body
+  ctx.beginPath(); ctx.moveTo(cx, hipY); ctx.lineTo(cx, shoulderY); ctx.stroke();
+  // arms
+  ctx.beginPath();
+  ctx.moveTo(cx, shoulderY); ctx.lineTo(cx - armSwing, shoulderY + 6);
+  ctx.moveTo(cx, shoulderY); ctx.lineTo(cx + armSwing, shoulderY + 6);
+  ctx.stroke();
+  // head
+  ctx.beginPath();
+  ctx.arc(cx, headCenterY, 4, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.fillStyle = '#f1f5f9';
+  ctx.beginPath(); ctx.arc(cx + stick.facing*1.5, headCenterY - 0.5, 1.1, 0, Math.PI*2); ctx.fill();
+}
+
+function worldToScreenY(worldYpx){
+  return H - (worldYpx - cameraY);
+}
+
+function render(){
+  // Background
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#1a1a3a');
+  grad.addColorStop(1,'#0d0d1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+
+  // Faint grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  const startRow = Math.floor(cameraY / BLOCK);
+  for(let r=startRow; r<startRow+ROWS_VISIBLE+2; r++){
+    const sy = worldToScreenY(r*BLOCK);
+    ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke();
+  }
+  for(let c=0;c<=COLS;c++){
+    const sx = c*BLOCK;
+    ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,H); ctx.stroke();
+  }
+
+  // Placed blocks
+  for(let c=0;c<COLS;c++){
+    for(let r=startRow; r<startRow+ROWS_VISIBLE+2; r++){
+      const k = c+','+r;
+      if(grid.has(k)){
+        const sy = worldToScreenY(r*BLOCK) - BLOCK;
+        const col = grid.get(k);
+        ctx.fillStyle = col;
+        ctx.fillRect(c*BLOCK, sy, BLOCK, BLOCK);
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx.fillRect(c*BLOCK+1, sy+1, BLOCK-2, 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(c*BLOCK+1, sy+BLOCK-3, BLOCK-2, 2);
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+        ctx.strokeRect(c*BLOCK+0.5, sy+0.5, BLOCK-1, BLOCK-1);
+      }
+    }
+  }
+
+  // Landing shadows
+  for(const fp of falling){
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    for(const [dx,dy] of fp.piece.cells){
+      const bx = fp.x + dx, by = fp.landY + dy;
+      const sy = worldToScreenY(by*BLOCK) - BLOCK;
+      ctx.fillRect(bx*BLOCK+1, sy+1, BLOCK-2, BLOCK-2);
+    }
+  }
+
+  // Falling pieces
+  for(const fp of falling){
+    for(const [dx,dy] of fp.piece.cells){
+      const bx = fp.x + dx;
+      const by = fp.y + dy;
+      const sy = worldToScreenY(by*BLOCK) - BLOCK;
+      ctx.fillStyle = fp.piece.color;
+      ctx.fillRect(bx*BLOCK, sy, BLOCK, BLOCK);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(bx*BLOCK+1, sy+1, BLOCK-2, 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(bx*BLOCK+1, sy+BLOCK-3, BLOCK-2, 2);
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+      ctx.strokeRect(bx*BLOCK+0.5, sy+0.5, BLOCK-1, BLOCK-1);
+    }
+  }
+
+  // Stickman
+  drawStickman(stick.x, worldToScreenY(stick.y));
+
+  // Lava
+  const lavaScreenY = worldToScreenY(lavaY);
+  if(lavaScreenY < H + 40){
+    const top = Math.max(0, lavaScreenY);
+    const lg = ctx.createLinearGradient(0, top, 0, H);
+    lg.addColorStop(0, '#ffea00');
+    lg.addColorStop(0.15, '#ff7a00');
+    lg.addColorStop(1, '#a30000');
+    ctx.fillStyle = lg;
+    ctx.fillRect(0, top, W, H - top);
+    // Wellige Oberkante
+    if(top > 0){
+      ctx.fillStyle = '#fff2a0';
+      const t = performance.now()/200;
+      ctx.beginPath();
+      ctx.moveTo(0, top);
+      for(let x=0; x<=W; x+=8){
+        const wave = Math.sin(x*0.05 + t) * 2 + Math.sin(x*0.13 + t*1.5) * 1.2;
+        ctx.lineTo(x, top + wave - 1);
+      }
+      ctx.lineTo(W, top + 4);
+      ctx.lineTo(0, top + 4);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // HUD update
+  const elapsed = !started ? 0 : (gameOver ? endElapsed : (Date.now()-startTime)/1000);
+  document.getElementById('height').textContent = Math.floor(stick.y/BLOCK);
+  document.getElementById('time').textContent = Math.floor(elapsed);
+  const lavaStat = document.getElementById('lavaStat');
+  if(elapsed < LAVA_DELAY){
+    lavaStat.textContent = 'Lava in: ' + Math.ceil(LAVA_DELAY - elapsed) + 's';
+    lavaStat.style.color = '#fff';
+  } else {
+    const dist = Math.max(0, Math.floor((stick.y - lavaY)/BLOCK));
+    lavaStat.textContent = 'Lava: ' + dist + ' Blöcke entfernt';
+    lavaStat.style.color = dist < 5 ? '#ff5577' : '#ffaa55';
+  }
+}
+
+// === Mobile-Steuerung ===
+let joyActive = false;
+let joyValue = 0;
+let joyTouchId = null;
+const joystickEl = document.getElementById('joystick');
+const joyKnobEl = document.getElementById('joyKnob');
+const jumpBtnEl = document.getElementById('jumpBtn');
+
+function setJoyKnob(dx){
+  const max = 40;
+  const clamped = Math.max(-max, Math.min(max, dx));
+  joyKnobEl.style.transform = 'translate('+clamped+'px, 0)';
+}
+joystickEl.addEventListener('pointerdown', e => {
+  if(joyTouchId !== null) return;
+  joyTouchId = e.pointerId;
+  joystickEl.setPointerCapture(e.pointerId);
+  joyActive = true;
+  const rect = joystickEl.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const dx = e.clientX - cx;
+  joyValue = Math.max(-1, Math.min(1, dx/40));
+  setJoyKnob(dx);
+  e.preventDefault();
+});
+joystickEl.addEventListener('pointermove', e => {
+  if(e.pointerId !== joyTouchId) return;
+  const rect = joystickEl.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const dx = e.clientX - cx;
+  joyValue = Math.max(-1, Math.min(1, dx/40));
+  setJoyKnob(dx);
+});
+function endJoy(e){
+  if(e.pointerId !== joyTouchId) return;
+  joyTouchId = null;
+  joyActive = false;
+  joyValue = 0;
+  setJoyKnob(0);
+}
+joystickEl.addEventListener('pointerup', endJoy);
+joystickEl.addEventListener('pointercancel', endJoy);
+
+let jumpBtnHeld = false;
+jumpBtnEl.addEventListener('pointerdown', e => {
+  if(!jumpBtnHeld){
+    jumpBtnHeld = true;
+    jumpQueued = true;
+    jumpBtnEl.classList.add('active');
+  }
+  e.preventDefault();
+});
+function endJump(e){
+  jumpBtnHeld = false;
+  jumpBtnEl.classList.remove('active');
+}
+jumpBtnEl.addEventListener('pointerup', endJump);
+jumpBtnEl.addEventListener('pointercancel', endJump);
+jumpBtnEl.addEventListener('pointerleave', endJump);
+
+// === Optionen ===
+const OPT_KEY = 'tetrisSurvivorOpts_v1';
+function loadOpts(){
+  try { return JSON.parse(localStorage.getItem(OPT_KEY)) || {}; } catch(e){ return {}; }
+}
+function saveOpts(o){ localStorage.setItem(OPT_KEY, JSON.stringify(o)); }
+let opts = loadOpts();
+const optMobileEl = document.getElementById('optMobile');
+const mobileControlsEl = document.getElementById('mobileControls');
+function applyOpts(){
+  if(opts.mobile){ mobileControlsEl.classList.add('show'); }
+  else { mobileControlsEl.classList.remove('show'); }
+  optMobileEl.checked = !!opts.mobile;
+}
+optMobileEl.addEventListener('change', () => {
+  opts.mobile = optMobileEl.checked;
+  saveOpts(opts);
+  applyOpts();
+});
+applyOpts();
+
+// === Menü ===
+const menuEl = document.getElementById('menu');
+const menuMainEl = document.getElementById('menuMain');
+const optionsPaneEl = document.getElementById('optionsPane');
+document.getElementById('btnPlay').addEventListener('click', () => {
+  menuEl.classList.add('hide');
+  startGame();
+});
+document.getElementById('btnOptions').addEventListener('click', () => {
+  menuMainEl.classList.add('hide');
+  optionsPaneEl.classList.add('show');
+});
+document.getElementById('btnBack').addEventListener('click', () => {
+  optionsPaneEl.classList.remove('show');
+  menuMainEl.classList.remove('hide');
+});
+
+function startGame(){
+  // State zurücksetzen
+  grid.clear();
+  for(let i=0;i<COLS;i++) heights[i]=0;
+  falling.length = 0;
+  bag = [];
+  stick.x = (COLS/2)*BLOCK;
+  stick.y = 0;
+  stick.vx = 0;
+  stick.vy = 0;
+  stick.onGround = false;
+  stick.walkPhase = 0;
+  stick.facing = 1;
+  cameraY = 0;
+  pieceCount = 3;
+  gameOver = false;
+  endElapsed = 0;
+  maxHeight = 0;
+  lavaY = -200;
+  jumpQueued = false;
+  startTime = Date.now();
+  started = true;
+}
+
+// === Highscore-System (Supabase + localStorage Fallback) ===
+const SCORES_KEY = 'tetrisSurvivorScores_v1';
+const MAX_ENTRIES = 10;
+
+const CFG = (typeof window !== 'undefined' && window.LAUNCHER_CONFIG) || {};
+const HAS_REMOTE = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
+
+function isOnline(){ return HAS_REMOTE; }
+function setStatus(elId, mode, text){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  el.className = 'boardStatus ' + mode;
+  el.textContent = text;
+}
+
+async function fetchRemoteScores(category){
+  const url = CFG.SUPABASE_URL + '/rest/v1/tetris_scores'
+    + '?category=eq.' + encodeURIComponent(category)
+    + '&order=score.desc&limit=' + MAX_ENTRIES;
+  const r = await fetch(url, { headers: { apikey: CFG.SUPABASE_ANON_KEY } });
+  if(!r.ok) throw new Error('fetch failed: '+r.status);
+  const rows = await r.json();
+  return rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    score: row.score,
+    ts: new Date(row.created_at).getTime(),
+  }));
+}
+async function submitRemoteScore(name, category, score){
+  const r = await fetch(CFG.SUPABASE_URL + '/rest/v1/tetris_scores', {
+    method: 'POST',
+    headers: {
+      apikey: CFG.SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + CFG.SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({ name: name.slice(0,12), category, score }),
+  });
+  if(!r.ok) throw new Error('submit failed: '+r.status);
+  const rows = await r.json();
+  return rows[0];
+}
+
+// Lokaler Fallback
+function loadLocalScores(){
+  try {
+    const raw = localStorage.getItem(SCORES_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      return { height: d.height || [], time: d.time || [] };
+    }
+  } catch(e){}
+  return { height: [], time: [] };
+}
+function saveLocalScores(s){
+  localStorage.setItem(SCORES_KEY, JSON.stringify(s));
+}
+function insertSortedLocal(list, entry){
+  list.push(entry);
+  list.sort((a,b) => b.score - a.score);
+  if(list.length > MAX_ENTRIES) list.length = MAX_ENTRIES;
+}
+
+async function loadScores(){
+  if(HAS_REMOTE){
+    try {
+      const [height, time] = await Promise.all([
+        fetchRemoteScores('height'),
+        fetchRemoteScores('time'),
+      ]);
+      return { height, time, remote: true };
+    } catch(e){
+      console.warn('Supabase nicht erreichbar, nutze localStorage:', e);
+    }
+  }
+  const s = loadLocalScores();
+  s.remote = false;
+  return s;
+}
+
+function rankIn(list, score){
+  for(let i=0; i<list.length; i++){
+    if(score > list[i].score) return i+1;
+  }
+  if(list.length < MAX_ENTRIES) return list.length + 1;
+  return 0;
+}
+function fmtDate(ts){
+  const d = new Date(ts);
+  const pad = n => n.toString().padStart(2,'0');
+  return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear();
+}
+function renderBoard(tableEl, list, highlightTs){
+  tableEl.innerHTML = '';
+  for(let i=0; i<MAX_ENTRIES; i++){
+    const e = list[i];
+    const tr = document.createElement('tr');
+    if(e && e.ts === highlightTs) tr.className = 'you';
+    tr.innerHTML = '<td class="rank">'+(i+1)+'.</td>'
+      + '<td>'+(e ? escapeHtml(e.name) : '—')+'</td>'
+      + '<td class="score">'+(e ? e.score : '')+'</td>'
+      + '<td class="date">'+(e ? fmtDate(e.ts) : '')+'</td>';
+    tableEl.appendChild(tr);
+  }
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+let pendingScore = null;
+async function onGameOver(reason){
+  endElapsed = (Date.now()-startTime)/1000;
+  const finalHeight = maxHeight;
+  const finalTime = Math.floor(endElapsed);
+  document.getElementById('finalHeight').textContent = finalHeight;
+  document.getElementById('finalTime').textContent = finalTime;
+  document.getElementById('overTitle').textContent =
+    reason === 'lava' ? 'Verbrannt!' :
+    reason === 'fall' ? 'Verloren!' : 'Zerquetscht!';
+
+  document.getElementById('over').classList.add('show');
+  setStatus('statusHeight', '', 'Lade…');
+  setStatus('statusTime', '', 'Lade…');
+
+  const scores = await loadScores();
+  const statusText = scores.remote ? 'Globale Rangliste' : 'Nur lokal — kein Backend';
+  const statusMode = scores.remote ? 'online' : 'offline';
+  setStatus('statusHeight', statusMode, statusText);
+  setStatus('statusTime', statusMode, statusText);
+
+  const heightRank = rankIn(scores.height, finalHeight);
+  const timeRank = rankIn(scores.time, finalTime);
+
+  renderBoard(document.getElementById('boardHeight'), scores.height);
+  renderBoard(document.getElementById('boardTime'), scores.time);
+
+  if(heightRank > 0 || timeRank > 0){
+    pendingScore = { finalHeight, finalTime, heightRank, timeRank, remote: scores.remote };
+    document.getElementById('nameForm').style.display = 'block';
+    setTimeout(()=> document.getElementById('nameInput').focus(), 50);
+  }
+}
+
+async function saveName(ev){
+  ev.preventDefault();
+  if(!pendingScore) return false;
+  const name = (document.getElementById('nameInput').value || 'Anon').slice(0,12);
+  const ts = Date.now();
+  const submitBtn = ev.target.querySelector('button');
+  if(submitBtn) submitBtn.disabled = true;
+
+  if(pendingScore.remote){
+    try {
+      if(pendingScore.heightRank > 0) await submitRemoteScore(name, 'height', pendingScore.finalHeight);
+      if(pendingScore.timeRank > 0) await submitRemoteScore(name, 'time', pendingScore.finalTime);
+    } catch(e){
+      console.warn('Remote save failed, falling back to local:', e);
+      const s = loadLocalScores();
+      if(pendingScore.heightRank > 0) insertSortedLocal(s.height, { name, score: pendingScore.finalHeight, ts });
+      if(pendingScore.timeRank > 0) insertSortedLocal(s.time, { name, score: pendingScore.finalTime, ts });
+      saveLocalScores(s);
+    }
+  } else {
+    const s = loadLocalScores();
+    if(pendingScore.heightRank > 0) insertSortedLocal(s.height, { name, score: pendingScore.finalHeight, ts });
+    if(pendingScore.timeRank > 0) insertSortedLocal(s.time, { name, score: pendingScore.finalTime, ts });
+    saveLocalScores(s);
+  }
+
+  document.getElementById('nameForm').style.display = 'none';
+  // Liste neu laden, eigenen Eintrag markieren
+  const fresh = await loadScores();
+  // Eigenen Eintrag finden (per Name + Score) und markieren
+  const myHeight = fresh.height.find(e => e.name === name && e.score === pendingScore.finalHeight);
+  const myTime = fresh.time.find(e => e.name === name && e.score === pendingScore.finalTime);
+  renderBoard(document.getElementById('boardHeight'), fresh.height, myHeight && myHeight.ts);
+  renderBoard(document.getElementById('boardTime'), fresh.time, myTime && myTime.ts);
+  pendingScore = null;
+  return false;
+}
+
+let lastT = performance.now();
+function loop(t){
+  const dt = Math.min(0.05, (t-lastT)/1000);
+  lastT = t;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
