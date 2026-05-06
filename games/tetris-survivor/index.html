@@ -329,7 +329,7 @@ function topmostBlockY(){
 function lavaSpeedAt(elapsed){
   const t = Math.max(0, elapsed - LAVA_DELAY);
   // Basis * 1.65 (vorher) * 1.4 (jetzt nochmal +40%) ≈ 2.31x ursprünglich
-  const baseSpeed = (3 + Math.min(7, t/20)) * 1.65 * 1.4 * 2;
+  const baseSpeed = (3 + Math.min(7, t/20)) * 5;
   // Wenn Lava sich dem obersten Block nähert: exponentiell ausbremsen.
   // Abstand > 10 Blöcke → volle Geschwindigkeit.
   // Abstand ≤ 5 Blöcke → komplett gestoppt.
@@ -337,7 +337,7 @@ function lavaSpeedAt(elapsed){
   const distPx = topmostBlockY() - lavaY;
   const distBlocks = distPx / BLOCK;
   if(distBlocks >= 10) return baseSpeed;
-  if(distBlocks <= 5) return 0;
+  if(distBlocks <= 4) return 0;
   const factor = Math.pow((distBlocks - 5) / 5, 3);
   return baseSpeed * factor;
 }
