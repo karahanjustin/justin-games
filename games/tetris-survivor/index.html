@@ -497,8 +497,9 @@ function update(dt){
       fp.y = fp.landY;
       // Crush check: AABB plus "Block landet direkt über dir".
       // Hitbox horizontal leicht verkleinert, damit Kantenberührungen nicht töten.
-      const CRUSH_PAD_X = 3;
-      const CRUSH_PAD_Y = 1;
+      // Crush-Hitbox um 10% kleiner pro Achse für mehr Forgiveness
+      const CRUSH_PAD_X = 3.55;
+      const CRUSH_PAD_Y = 2.2;
       const sL = stick.x - STICK_W/2 + CRUSH_PAD_X;
       const sR = stick.x + STICK_W/2 - CRUSH_PAD_X;
       const sB = stick.y + CRUSH_PAD_Y;
@@ -529,7 +530,7 @@ function update(dt){
   if(curH > maxHeight) maxHeight = curH;
 
   // Camera
-  const target = Math.max(0, stick.y - H*0.32);
+  const target = Math.max(0, stick.y - H*0.32 - 4*BLOCK);
   cameraY += (target - cameraY) * Math.min(1, dt*4);
 
   if(stick.y + STICK_H < cameraY - 50){
