@@ -359,6 +359,22 @@ function colTopAt(px){
   return m;
 }
 
+// True, wenn die Spieler-Hitbox bei (nx, ny) tatsächlich einen Block überlappt.
+// Höhle-bewusst — eine hohe `heights[]` über einer Höhle blockt nicht.
+function isBlockedAt(nx, ny){
+  const lc = Math.floor((nx - STICK_W/2)/BLOCK);
+  const rc = Math.floor((nx + STICK_W/2 - 0.01)/BLOCK);
+  const bottomRow = Math.floor((ny + 0.01)/BLOCK);
+  const topRow = Math.floor((ny + STICK_H - 0.01)/BLOCK);
+  for(let c=lc; c<=rc; c++){
+    if(c<0||c>=COLS) continue;
+    for(let r=bottomRow; r<=topRow; r++){
+      if(grid.has(c+','+r)) return true;
+    }
+  }
+  return false;
+}
+
 // Höhle-bewusster Boden: höchster Block-Top, der ≤ Spielerfüße liegt.
 // So teleportiert ein neu gelandeter Stein über dem Spieler nicht den Spieler hoch.
 function groundUnderAt(px){
@@ -445,19 +461,24 @@ function update(dt){
 
   stick.vy -= 1400 * dt;
 
-  // Horizontal with step-up
+  // Horizontal mit höhle-bewusster Kollision + Step-Up um max. 1 Block
   const speed = 130;
   let nx = stick.x + move*speed*dt;
   nx = Math.max(STICK_W/2, Math.min(W - STICK_W/2, nx));
-  const newTop = colTopAt(nx);
-  if(newTop > stick.y + 4){
-    if(stick.onGround && newTop - stick.y <= BLOCK + 2){
-      stick.x = nx;
-      stick.y = newTop;
-      stick.vy = 0;
-    }
-  } else {
+  if(!isBlockedAt(nx, stick.y)){
     stick.x = nx;
+  } else if(stick.onGround){
+    // Versuche bis zu BLOCK+2 px hoch zu treten; springe zur nächsten freien Position
+    let stepped = false;
+    for(let lift=2; lift<=BLOCK+2; lift++){
+      if(!isBlockedAt(nx, stick.y + lift)){
+        stick.x = nx;
+        stick.y += lift;
+        stick.vy = 0;
+        stepped = true;
+        break;
+      }
+    }
   }
 
   // Vertical
